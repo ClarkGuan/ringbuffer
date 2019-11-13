@@ -3,6 +3,7 @@ package bring
 import (
 	"bytes"
 	"container/ring"
+	"errors"
 	"io"
 	"net"
 	"reflect"
@@ -229,7 +230,7 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 	// 对网络套接字有优化
 	buffers := net.Buffers(bufList)
 	n, err = buffers.WriteTo(w)
-	if n == 0 {
+	if n <= 0 {
 		return
 	}
 
@@ -272,7 +273,7 @@ func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
 		buf := ringBytes(rb.pw.r)[rb.pw.i:]
 		n, err = r.Read(buf)
 		if n < 0 {
-			n = 0
+			panic(errors.New("bring.Buffer: reader returned negative count from Read"))
 		}
 		total += int64(n)
 		rb.cap -= n
