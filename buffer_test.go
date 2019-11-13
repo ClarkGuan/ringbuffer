@@ -259,59 +259,58 @@ func TestReadFrom(t *testing.T) {
 	}
 }
 
-//type panicReader struct{ panic bool }
-//
-//func (r panicReader) Read(p []byte) (int, error) {
-//	if r.panic {
-//		panic(nil)
-//	}
-//	return 0, io.EOF
-//}
-//
-//// Make sure that an empty Buffer remains empty when
-//// it is "grown" before a Read that panics
-//func TestReadFromPanicReader(t *testing.T) {
-//
-//	// First verify non-panic behaviour
-//	buf := bring.New(512, 2)
-//	i, err := buf.ReadFrom(panicReader{})
-//	if err != nil {
-//		t.Fatal(err)
-//	}
-//	if i != 0 {
-//		t.Fatalf("unexpected return from bytes.ReadFrom (1): got: %d, want %d", i, 0)
-//	}
-//	check(t, "TestReadFromPanicReader (1)", &buf, "")
-//
-//	// Confirm that when Reader panics, the empty buffer remains empty
-//	var buf2 bytes.Buffer
-//	defer func() {
-//		recover()
-//		check(t, "TestReadFromPanicReader (2)", &buf2, "")
-//	}()
-//	buf2.ReadFrom(panicReader{panic: true})
-//}
-//
-//func TestReadFromNegativeReader(t *testing.T) {
-//	var b bytes.Buffer
-//	defer func() {
-//		switch err := recover().(type) {
-//		case nil:
-//			t.Fatal("bytes.Buffer.ReadFrom didn't panic")
-//		case error:
-//			// this is the error string of errNegativeRead
-//			wantError := "bytes.Buffer: reader returned negative count from Read"
-//			if err.Error() != wantError {
-//				t.Fatalf("recovered panic: got %v, want %v", err.Error(), wantError)
-//			}
-//		default:
-//			t.Fatalf("unexpected panic value: %#v", err)
-//		}
-//	}()
-//
-//	b.ReadFrom(new(negativeReader))
-//}
-//
+type panicReader struct{ panic bool }
+
+func (r panicReader) Read(p []byte) (int, error) {
+	if r.panic {
+		panic(nil)
+	}
+	return 0, io.EOF
+}
+
+// Make sure that an empty Buffer remains empty when
+// it is "grown" before a Read that panics
+func TestReadFromPanicReader(t *testing.T) {
+	// First verify non-panic behaviour
+	buf := bring.New(512, 2)
+	i, err := buf.ReadFrom(panicReader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if i != 0 {
+		t.Fatalf("unexpected return from bytes.ReadFrom (1): got: %d, want %d", i, 0)
+	}
+	check(t, "TestReadFromPanicReader (1)", buf, "")
+
+	// Confirm that when Reader panics, the empty buffer remains empty
+	buf2 := bring.New(512, 2)
+	defer func() {
+		recover()
+		check(t, "TestReadFromPanicReader (2)", buf2, "")
+	}()
+	buf2.ReadFrom(panicReader{panic: true})
+}
+
+func TestReadFromNegativeReader(t *testing.T) {
+	b := bring.New(512, 2)
+	defer func() {
+		switch err := recover().(type) {
+		case nil:
+			t.Fatal("bytes.Buffer.ReadFrom didn't panic")
+		case error:
+			// this is the error string of errNegativeRead
+			wantError := "bring.Buffer: reader returned negative count from Read"
+			if err.Error() != wantError {
+				t.Fatalf("recovered panic: got %v, want %v", err.Error(), wantError)
+			}
+		default:
+			t.Fatalf("unexpected panic value: %#v", err)
+		}
+	}()
+
+	b.ReadFrom(new(negativeReader))
+}
+
 //func TestWriteTo(t *testing.T) {
 //	var buf bytes.Buffer
 //	for i := 3; i < 30; i += 3 {
