@@ -22,6 +22,7 @@ type Buffer struct {
 	bufSize int
 	left    int
 	cap     int
+	maxCap  int
 }
 
 // ns[0] 表示每个缓冲区的最大大小；ns[1] 表示缓冲区的个数
@@ -55,6 +56,7 @@ func New(ns ...int) *Buffer {
 		p.Value = make([]byte, size)
 	}
 	rb.rg = newR
+	rb.maxCap = size * n
 
 	rb.Reset()
 	return &rb
@@ -66,7 +68,7 @@ func (rb *Buffer) Reset() {
 	rb.pr.r = rb.rg
 	rb.pr.i = 0
 	rb.left = 0
-	rb.cap = rb.rg.Len() * rb.bufSize
+	rb.cap = rb.maxCap
 }
 
 func (rb *Buffer) Truncate(n int) {
@@ -114,6 +116,10 @@ func (rb *Buffer) Len() int {
 }
 
 func (rb *Buffer) Read(p []byte) (n int, err error) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+
 	if rb.left == 0 {
 		return 0, io.EOF
 	}
@@ -385,7 +391,9 @@ func (rb *Buffer) grow(n int) {
 	for p := newR.Next(); p != newR; p = p.Next() {
 		p.Value = make([]byte, rb.bufSize)
 	}
-	rb.cap += m * rb.bufSize
+	delta := m * rb.bufSize
+	rb.cap += delta
+	rb.maxCap += delta
 	rb.pw.r.Link(newR) // insert new ring elements
 }
 
