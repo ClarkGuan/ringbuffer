@@ -47,40 +47,40 @@ func check(t *testing.T, testname string, buf *bring.Buffer, s string) {
 // Fill buf through n writes of string fus.
 // The initial contents of buf corresponds to the string s;
 // the result is the final contents of buf returned as a string.
-//func fillString(t *testing.T, testname string, buf *bytes.Buffer, s string, n int, fus string) string {
-//	check(t, testname+" (fill 1)", buf, s)
-//	for ; n > 0; n-- {
-//		m, err := buf.WriteString(fus)
-//		if m != len(fus) {
-//			t.Errorf(testname+" (fill 2): m == %d, expected %d", m, len(fus))
-//		}
-//		if err != nil {
-//			t.Errorf(testname+" (fill 3): err should always be nil, found err == %s", err)
-//		}
-//		s += fus
-//		check(t, testname+" (fill 4)", buf, s)
-//	}
-//	return s
-//}
+func fillString(t *testing.T, testname string, buf *bring.Buffer, s string, n int, fus string) string {
+	check(t, testname+" (fill 1)", buf, s)
+	for ; n > 0; n-- {
+		m, err := buf.WriteString(fus)
+		if m != len(fus) {
+			t.Errorf(testname+" (fill 2): m == %d, expected %d", m, len(fus))
+		}
+		if err != nil {
+			t.Errorf(testname+" (fill 3): err should always be nil, found err == %s", err)
+		}
+		s += fus
+		check(t, testname+" (fill 4)", buf, s)
+	}
+	return s
+}
 
 // Fill buf through n writes of byte slice fub.
 // The initial contents of buf corresponds to the string s;
 // the result is the final contents of buf returned as a string.
-//func fillBytes(t *testing.T, testname string, buf *bytes.Buffer, s string, n int, fub []byte) string {
-//	check(t, testname+" (fill 1)", buf, s)
-//	for ; n > 0; n-- {
-//		m, err := buf.Write(fub)
-//		if m != len(fub) {
-//			t.Errorf(testname+" (fill 2): m == %d, expected %d", m, len(fub))
-//		}
-//		if err != nil {
-//			t.Errorf(testname+" (fill 3): err should always be nil, found err == %s", err)
-//		}
-//		s += string(fub)
-//		check(t, testname+" (fill 4)", buf, s)
-//	}
-//	return s
-//}
+func fillBytes(t *testing.T, testname string, buf *bring.Buffer, s string, n int, fub []byte) string {
+	check(t, testname+" (fill 1)", buf, s)
+	for ; n > 0; n-- {
+		m, err := buf.Write(fub)
+		if m != len(fub) {
+			t.Errorf(testname+" (fill 2): m == %d, expected %d", m, len(fub))
+		}
+		if err != nil {
+			t.Errorf(testname+" (fill 3): err should always be nil, found err == %s", err)
+		}
+		s += string(fub)
+		check(t, testname+" (fill 4)", buf, s)
+	}
+	return s
+}
 
 func TestNewBuffer(t *testing.T) {
 	buf := bring.New(512, 2)
@@ -161,32 +161,32 @@ func TestBasicOperations(t *testing.T) {
 	}
 }
 
-//func TestLargeStringWrites(t *testing.T) {
-//	var buf bytes.Buffer
-//	limit := 30
-//	if testing.Short() {
-//		limit = 9
-//	}
-//	for i := 3; i < limit; i += 3 {
-//		s := fillString(t, "TestLargeWrites (1)", &buf, "", 5, testString)
-//		empty(t, "TestLargeStringWrites (2)", &buf, s, make([]byte, len(testString)/i))
-//	}
-//	check(t, "TestLargeStringWrites (3)", &buf, "")
-//}
-//
-//func TestLargeByteWrites(t *testing.T) {
-//	var buf bytes.Buffer
-//	limit := 30
-//	if testing.Short() {
-//		limit = 9
-//	}
-//	for i := 3; i < limit; i += 3 {
-//		s := fillBytes(t, "TestLargeWrites (1)", &buf, "", 5, testBytes)
-//		empty(t, "TestLargeByteWrites (2)", &buf, s, make([]byte, len(testString)/i))
-//	}
-//	check(t, "TestLargeByteWrites (3)", &buf, "")
-//}
-//
+func TestLargeStringWrites(t *testing.T) {
+	buf := bring.New(512, 2)
+	limit := 30
+	if testing.Short() {
+		limit = 9
+	}
+	for i := 3; i < limit; i += 3 {
+		s := fillString(t, "TestLargeWrites (1)", buf, "", 5, testString)
+		empty(t, "TestLargeStringWrites (2)", buf, s, make([]byte, len(testString)/i))
+	}
+	check(t, "TestLargeStringWrites (3)", buf, "")
+}
+
+func TestLargeByteWrites(t *testing.T) {
+	buf := bring.New(512, 2)
+	limit := 30
+	if testing.Short() {
+		limit = 9
+	}
+	for i := 3; i < limit; i += 3 {
+		s := fillBytes(t, "TestLargeWrites (1)", buf, "", 5, testBytes)
+		empty(t, "TestLargeByteWrites (2)", buf, s, make([]byte, len(testString)/i))
+	}
+	check(t, "TestLargeByteWrites (3)", buf, "")
+}
+
 //func TestLargeStringReads(t *testing.T) {
 //	var buf bytes.Buffer
 //	for i := 3; i < 30; i += 3 {
