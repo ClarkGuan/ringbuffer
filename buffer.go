@@ -187,6 +187,15 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 		return
 	}
 
+	// 如果缓冲区大小不超过一个 ring node，则走优化路径
+	if rb.pr.i+rb.left <= rb.bufSize {
+		var cnt int
+		cnt, err = w.Write(ringBytes(rb.pr.r)[rb.pr.i : rb.pr.i+rb.left])
+		rb.pr.i += cnt
+		rb.left -= cnt
+		return int64(cnt), err
+	}
+
 	var bufList [][]byte
 	var buf []byte
 	var start, end, total int
