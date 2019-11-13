@@ -270,6 +270,19 @@ func (rb *Buffer) ReadByte() (byte, error) {
 	return buf[i], nil
 }
 
+func (rb *Buffer) WriteByte(c byte) error {
+	if rb.cap == 0 {
+		rb.grow(1)
+	}
+	if rb.pw.i == rb.bufSize {
+		rb.pw.i = 0
+		rb.pw.r = rb.pw.r.Next()
+	}
+	ringBytes(rb.pw.r)[rb.pw.i] = c
+	rb.pw.i++
+	return nil
+}
+
 func (rb *Buffer) GoString() string {
 	return rb.String()
 }
