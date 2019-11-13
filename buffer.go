@@ -321,9 +321,9 @@ func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
 		rb.pw.i += n
 		rb.left += n
 
-		if err != nil {
+		if err != nil || n < len(buf) { // 如果 pipe 类 fd 读取完成
 			if err == io.EOF {
-				return total, nil
+				err = nil
 			}
 			return
 		}
