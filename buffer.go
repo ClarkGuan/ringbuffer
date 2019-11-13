@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	MIN_BLOCK_SIZE  = 512
-	MIN_BLOCK_COUNT = 1
+	MinBlockSize  = 512
+	MinBlockCount = 1
 )
 
 // ring buffer
@@ -38,12 +38,12 @@ func New(ns ...int) *Buffer {
 		n = ns[1]
 	}
 
-	if size < MIN_BLOCK_SIZE {
-		size = MIN_BLOCK_SIZE
+	if size < MinBlockSize {
+		size = MinBlockSize
 	}
 
-	if n < MIN_BLOCK_COUNT {
-		n = MIN_BLOCK_COUNT
+	if n < MinBlockCount {
+		n = MinBlockCount
 	}
 
 	rb := Buffer{}
