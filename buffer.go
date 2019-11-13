@@ -145,6 +145,13 @@ func (rb *Buffer) WriteString(s string) (n int, err error) {
 	return rb.Write(buf)
 }
 
+func (rb *Buffer) writeTo(w io.Writer) (n int64, err error) {
+	pr, pw, c, l := rb.pr, rb.pw, rb.cap, rb.left
+	n, err = rb.WriteTo(w)
+	rb.pr, rb.pw, rb.cap, rb.left = pr, pw, c, l
+	return
+}
+
 func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 	if rb.left == 0 {
 		return
@@ -276,7 +283,7 @@ func (rb *Buffer) Bytes() []byte {
 		return nil
 	}
 	buf := bytes.NewBuffer(make([]byte, rb.left))
-	rb.WriteTo(buf)
+	rb.writeTo(buf)
 	return buf.Bytes()
 }
 
