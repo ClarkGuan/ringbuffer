@@ -14,7 +14,6 @@ import (
 
 // ring buffer
 type Buffer struct {
-	rg     *ring.Ring
 	pr, pw struct {
 		r *ring.Ring
 		i int
@@ -55,17 +54,16 @@ func New(ns ...int) *Buffer {
 	for p := newR.Next(); p != newR; p = p.Next() {
 		p.Value = make([]byte, size)
 	}
-	rb.rg = newR
 	rb.maxCap = size * n
+	rb.pw.r = newR
 
 	rb.Reset()
 	return &rb
 }
 
 func (rb *Buffer) Reset() {
-	rb.pw.r = rb.rg
 	rb.pw.i = 0
-	rb.pr.r = rb.rg
+	rb.pr.r = rb.pw.r
 	rb.pr.i = 0
 	rb.left = 0
 	rb.cap = rb.maxCap
