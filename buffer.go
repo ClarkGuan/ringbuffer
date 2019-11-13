@@ -6,8 +6,6 @@ import (
 	"errors"
 	"io"
 	"net"
-	"reflect"
-	"unsafe"
 
 	assert "github.com/ClarkGuan/assertgo"
 )
@@ -158,12 +156,13 @@ func (rb *Buffer) Read(p []byte) (n int, err error) {
 }
 
 func (rb *Buffer) Write(p []byte) (n int, err error) {
-	if rb.cap < len(p) {
-		rb.grow(len(p) - rb.cap)
-		assert.True(rb.cap >= len(p))
+	lenp := len(p)
+	if rb.cap < lenp {
+		rb.grow(lenp - rb.cap)
+		assert.True(rb.cap >= lenp)
 	}
 
-	total := len(p)
+	total := lenp
 	var buf []byte
 	var cnt, offset int
 
@@ -188,13 +187,34 @@ func (rb *Buffer) Write(p []byte) (n int, err error) {
 }
 
 func (rb *Buffer) WriteString(s string) (n int, err error) {
+	lens := len(s)
+	if rb.cap < lens {
+		rb.grow(lens - rb.cap)
+		assert.True(rb.cap >= lens)
+	}
+
+	total := lens
 	var buf []byte
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&buf))
-	bh.Data = sh.Data
-	bh.Cap = sh.Len
-	bh.Len = sh.Len
-	return rb.Write(buf)
+	var cnt, offset int
+
+	for {
+		buf = ringBytes(rb.pw.r)
+		cnt = copy(buf[rb.pw.i:], s[offset:])
+		rb.pw.i += cnt
+		offset += cnt
+		rb.cap -= cnt
+		rb.left += cnt
+
+		if total == offset {
+			break
+		}
+		assert.True(rb.pw.i == rb.bufSize)
+
+		rb.pw.i = 0
+		rb.pw.r = rb.pw.r.Next()
+	}
+
+	return total, nil
 }
 
 func (rb *Buffer) writeTo(w io.Writer) (n int64, err error) {
