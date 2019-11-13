@@ -21,10 +21,10 @@ type Buffer struct {
 		r *ring.Ring
 		i int
 	}
-	bufSize int
-	left    int
-	cap     int
-	maxCap  int
+	blockSize int
+	left      int
+	cap       int
+	maxCap    int
 }
 
 // ns[0] 表示每个缓冲区的最大大小；ns[1] 表示缓冲区的个数
@@ -47,7 +47,7 @@ func New(ns ...int) *Buffer {
 	}
 
 	rb := Buffer{}
-	rb.bufSize = size
+	rb.blockSize = size
 
 	newR := ring.New(n)
 	newR.Value = make([]byte, size)
@@ -87,10 +87,10 @@ func (rb *Buffer) Truncate(n int) {
 	m := n
 
 	for m > 0 {
-		if rb.bufSize-rb.pw.i < m {
+		if rb.blockSize-rb.pw.i < m {
 			rb.pw.i = 0
 			rb.pw.r = rb.pw.r.Next()
-			m -= rb.bufSize - rb.pw.i
+			m -= rb.blockSize - rb.pw.i
 		} else {
 			rb.pw.i += m
 			break
@@ -133,28 +133,28 @@ func (rb *Buffer) Skip(n int) {
 	}
 
 	// 重新计算 rb.pr
-	if rb.pr.i+n <= rb.bufSize {
+	if rb.pr.i+n <= rb.blockSize {
 		rb.pr.i += n
 		rb.stepNext(false)
 	} else {
-		n -= rb.bufSize - rb.pr.i
-		tail := n % rb.bufSize
-		cnt := n / rb.bufSize
+		n -= rb.blockSize - rb.pr.i
+		tail := n % rb.blockSize
+		cnt := n / rb.blockSize
 		if tail > 0 {
 			cnt++
 			for cnt > 0 {
 				rb.pr.r = rb.pr.r.Next()
-				rb.cap += rb.bufSize
+				rb.cap += rb.blockSize
 				cnt--
 			}
 			rb.pr.i = tail
 		} else {
 			for cnt > 0 {
 				rb.pr.r = rb.pr.r.Next()
-				rb.cap += rb.bufSize
+				rb.cap += rb.blockSize
 				cnt--
 			}
-			rb.pr.i = rb.bufSize
+			rb.pr.i = rb.blockSize
 			rb.stepNext(false)
 		}
 	}
@@ -175,7 +175,7 @@ func (rb *Buffer) Peek() (list [][]byte) {
 		if prg == rb.pw.r {
 			end = rb.pw.i
 		} else {
-			end = rb.bufSize
+			end = rb.blockSize
 		}
 
 		if prg == rb.pr.r {
@@ -215,7 +215,7 @@ func (rb *Buffer) Read(p []byte) (n int, err error) {
 		if rb.pr.r == rb.pw.r {
 			end = rb.pw.i
 		} else {
-			end = rb.bufSize
+			end = rb.blockSize
 		}
 		buf = ringBytes(rb.pr.r)
 		count = copy(p[offset:], buf[rb.pr.i:end])
@@ -261,7 +261,7 @@ func (rb *Buffer) Write(p []byte) (n int, err error) {
 		if total == offset {
 			break
 		}
-		assert.True(rb.pw.i == rb.bufSize)
+		assert.True(rb.pw.i == rb.blockSize)
 
 		rb.pw.i = 0
 		rb.pw.r = rb.pw.r.Next()
@@ -292,7 +292,7 @@ func (rb *Buffer) WriteString(s string) (n int, err error) {
 		if total == offset {
 			break
 		}
-		assert.True(rb.pw.i == rb.bufSize)
+		assert.True(rb.pw.i == rb.blockSize)
 
 		rb.pw.i = 0
 		rb.pw.r = rb.pw.r.Next()
@@ -314,7 +314,7 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	// 如果缓冲区大小不超过一个 ring node，则走优化路径
-	if rb.pr.i+rb.left <= rb.bufSize {
+	if rb.pr.i+rb.left <= rb.blockSize {
 		var cnt int
 		cnt, err = w.Write(ringBytes(rb.pr.r)[rb.pr.i : rb.pr.i+rb.left])
 		if cnt < 0 {
@@ -361,7 +361,7 @@ func (rb *Buffer) readFrom(r io.Reader, pipe bool) (total int64, err error) {
 			rb.grow(1)
 		}
 
-		if rb.pw.i == rb.bufSize {
+		if rb.pw.i == rb.blockSize {
 			rb.pw.i = 0
 			rb.pw.r = rb.pw.r.Next()
 		}
@@ -388,7 +388,7 @@ func (rb *Buffer) ReadByte() (byte, error) {
 	if rb.left == 0 {
 		rb.Reset()
 	} else {
-		if rb.pr.i == rb.bufSize {
+		if rb.pr.i == rb.blockSize {
 			rb.stepNext(true)
 		}
 	}
@@ -400,7 +400,7 @@ func (rb *Buffer) WriteByte(c byte) error {
 	if rb.cap == 0 {
 		rb.grow(1)
 	}
-	if rb.pw.i == rb.bufSize {
+	if rb.pw.i == rb.blockSize {
 		rb.pw.i = 0
 		rb.pw.r = rb.pw.r.Next()
 	}
@@ -430,7 +430,7 @@ func (rb *Buffer) Bytes() []byte {
 
 // read pointer step into next ring node
 func (rb *Buffer) stepNext(check bool) {
-	if rb.pr.i != rb.bufSize || rb.pr.r == rb.pw.r {
+	if rb.pr.i != rb.blockSize || rb.pr.r == rb.pw.r {
 		if check {
 			assert.True(false)
 		} else {
@@ -440,18 +440,18 @@ func (rb *Buffer) stepNext(check bool) {
 
 	rb.pr.i = 0
 	rb.pr.r = rb.pr.r.Next()
-	rb.cap += rb.bufSize
+	rb.cap += rb.blockSize
 }
 
 // the number of ring elements grow to satisfy the need of extra size n (bytes)
 func (rb *Buffer) grow(n int) {
-	m := n/rb.bufSize + 1
+	m := n/rb.blockSize + 1
 	newR := ring.New(m)
-	newR.Value = make([]byte, rb.bufSize)
+	newR.Value = make([]byte, rb.blockSize)
 	for p := newR.Next(); p != newR; p = p.Next() {
-		p.Value = make([]byte, rb.bufSize)
+		p.Value = make([]byte, rb.blockSize)
 	}
-	delta := m * rb.bufSize
+	delta := m * rb.blockSize
 	rb.cap += delta
 	rb.maxCap += delta
 	rb.pw.r.Link(newR) // insert new ring elements
