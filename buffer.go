@@ -115,6 +115,78 @@ func (rb *Buffer) Len() int {
 	return rb.left
 }
 
+func (rb *Buffer) Skip(n int) {
+	if n > rb.left {
+		n = rb.left
+	}
+
+	if n <= 0 {
+		return
+	}
+
+	rb.left -= n
+	// 重新计算 rb.pr
+	if rb.pr.i+n <= rb.bufSize {
+		rb.pr.i += n
+		rb.stepNext(false)
+	} else {
+		n -= rb.bufSize - rb.pr.i
+		tail := n % rb.bufSize
+		cnt := n / rb.bufSize
+		if tail > 0 {
+			cnt++
+			for cnt > 0 {
+				rb.pr.r = rb.pr.r.Next()
+				rb.cap += rb.bufSize
+				cnt--
+			}
+			rb.pr.i = tail
+		} else {
+			for cnt > 0 {
+				rb.pr.r = rb.pr.r.Next()
+				rb.cap += rb.bufSize
+				cnt--
+			}
+			rb.pr.i = rb.bufSize
+			rb.stepNext(false)
+		}
+	}
+}
+
+func (rb *Buffer) Peek() (list [][]byte) {
+	if rb.left == 0 {
+		return
+	}
+
+	var buf []byte
+	var start, end, total int
+
+	prg := rb.pr.r
+	total = rb.left
+
+	for total > 0 {
+		if prg == rb.pw.r {
+			end = rb.pw.i
+		} else {
+			end = rb.bufSize
+		}
+
+		if prg == rb.pr.r {
+			start = rb.pr.i
+		} else {
+			start = 0
+		}
+
+		buf = ringBytes(prg)[start:end]
+		list = append(list, buf)
+
+		total -= len(buf)
+		prg = prg.Next()
+	}
+
+	return
+}
+
 func (rb *Buffer) Read(p []byte) (n int, err error) {
 	if len(p) == 0 {
 		return 0, nil
@@ -241,73 +313,15 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 		return int64(cnt), err
 	}
 
-	var bufList [][]byte
-	var buf []byte
-	var start, end, total int
-
-	prg := rb.pr.r
-	total = rb.left
-
-	for total > 0 {
-		if prg == rb.pw.r {
-			end = rb.pw.i
-		} else {
-			end = rb.bufSize
-		}
-
-		if prg == rb.pr.r {
-			start = rb.pr.i
-		} else {
-			start = 0
-		}
-
-		buf = ringBytes(prg)[start:end]
-		bufList = append(bufList, buf)
-
-		total -= len(buf)
-		prg = prg.Next()
-	}
-
 	// 对网络套接字有优化
-	buffers := net.Buffers(bufList)
+	buffers := net.Buffers(rb.Peek())
 	n, err = buffers.WriteTo(w)
-	if n <= 0 {
-		return
-	}
-
-	nn := int(n)
-	rb.left -= nn
-	// 重新计算 rb.pr
-	if rb.pr.i+nn <= rb.bufSize {
-		rb.pr.i += nn
-		rb.stepNext(false)
-	} else {
-		nn -= rb.bufSize - rb.pr.i
-		tail := nn % rb.bufSize
-		cnt := nn / rb.bufSize
-		if tail > 0 {
-			cnt++
-			for cnt > 0 {
-				rb.pr.r = rb.pr.r.Next()
-				rb.cap += rb.bufSize
-				cnt--
-			}
-			rb.pr.i = tail
-		} else {
-			for cnt > 0 {
-				rb.pr.r = rb.pr.r.Next()
-				rb.cap += rb.bufSize
-				cnt--
-			}
-			rb.pr.i = rb.bufSize
-			rb.stepNext(false)
-		}
-	}
+	rb.Skip(int(n))
 
 	return
 }
 
-func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
+func (rb *Buffer) readFrom(r io.Reader, pipe bool) (total int64, err error) {
 	// 不确定可以从 r 中读到多少数据，这里只能一点一点增加容量
 	var n int
 	for {
@@ -321,8 +335,8 @@ func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
 		rb.pw.i += n
 		rb.left += n
 
-		if err != nil || n < len(buf) { // 如果 pipe 类 fd 读取完成
-			if err == io.EOF {
+		if err != nil || (pipe && n < len(buf)) { // 如果 pipe 类 fd 读取完成
+			if !pipe && err == io.EOF {
 				err = nil
 			}
 			return
@@ -337,6 +351,14 @@ func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
 			rb.pw.r = rb.pw.r.Next()
 		}
 	}
+}
+
+func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
+	return rb.readFrom(r, false)
+}
+
+func (rb *Buffer) ReadFromPipe(r io.Reader) (int64, error) {
+	return rb.readFrom(r, true)
 }
 
 func (rb *Buffer) ReadByte() (byte, error) {
