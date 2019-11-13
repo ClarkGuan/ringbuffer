@@ -187,26 +187,26 @@ func TestLargeByteWrites(t *testing.T) {
 	check(t, "TestLargeByteWrites (3)", buf, "")
 }
 
-//func TestLargeStringReads(t *testing.T) {
-//	var buf bytes.Buffer
-//	for i := 3; i < 30; i += 3 {
-//		s := fillString(t, "TestLargeReads (1)", &buf, "", 5, testString[0:len(testString)/i])
-//		empty(t, "TestLargeReads (2)", &buf, s, make([]byte, len(testString)))
-//	}
-//	check(t, "TestLargeStringReads (3)", &buf, "")
-//}
-//
-//func TestLargeByteReads(t *testing.T) {
-//	var buf bytes.Buffer
-//	for i := 3; i < 30; i += 3 {
-//		s := fillBytes(t, "TestLargeReads (1)", &buf, "", 5, testBytes[0:len(testBytes)/i])
-//		empty(t, "TestLargeReads (2)", &buf, s, make([]byte, len(testString)))
-//	}
-//	check(t, "TestLargeByteReads (3)", &buf, "")
-//}
-//
+func TestLargeStringReads(t *testing.T) {
+	buf := bring.New(512, 2)
+	for i := 3; i < 30; i += 3 {
+		s := fillString(t, "TestLargeReads (1)", buf, "", 5, testString[0:len(testString)/i])
+		empty(t, "TestLargeReads (2)", buf, s, make([]byte, len(testString)))
+	}
+	check(t, "TestLargeStringReads (3)", buf, "")
+}
+
+func TestLargeByteReads(t *testing.T) {
+	buf := bring.New(512, 2)
+	for i := 3; i < 30; i += 3 {
+		s := fillBytes(t, "TestLargeReads (1)", buf, "", 5, testBytes[0:len(testBytes)/i])
+		empty(t, "TestLargeReads (2)", buf, s, make([]byte, len(testString)))
+	}
+	check(t, "TestLargeByteReads (3)", buf, "")
+}
+
 //func TestMixedReadsAndWrites(t *testing.T) {
-//	var buf bytes.Buffer
+//	buf := bring.New(512, 2)
 //	s := ""
 //	for i := 0; i < 50; i++ {
 //		wlen := rand.Intn(len(testString))
@@ -225,7 +225,7 @@ func TestLargeByteWrites(t *testing.T) {
 //}
 //
 //func TestCapWithPreallocatedSlice(t *testing.T) {
-//	buf := bytes.NewBuffer(make([]byte, 10))
+//	buf := bring.New(512, 2)
 //	n := buf.Cap()
 //	if n != 10 {
 //		t.Errorf("expected 10, got %d", n)
@@ -233,7 +233,7 @@ func TestLargeByteWrites(t *testing.T) {
 //}
 //
 //func TestCapWithSliceAndWrittenData(t *testing.T) {
-//	buf := bytes.NewBuffer(make([]byte, 0, 10))
+//	buf := bring.New(512, 2)
 //	buf.Write([]byte("test"))
 //	n := buf.Cap()
 //	if n != 10 {
@@ -242,14 +242,14 @@ func TestLargeByteWrites(t *testing.T) {
 //}
 //
 //func TestNil(t *testing.T) {
-//	var b *bytes.Buffer
+//	buf := bring.New(512, 2)
 //	if b.String() != "<nil>" {
 //		t.Errorf("expected <nil>; got %q", b.String())
 //	}
 //}
 //
 //func TestReadFrom(t *testing.T) {
-//	var buf bytes.Buffer
+//	buf := bring.New(512, 2)
 //	for i := 3; i < 30; i += 3 {
 //		s := fillBytes(t, "TestReadFrom (1)", &buf, "", 5, testBytes[0:len(testBytes)/i])
 //		var b bytes.Buffer
@@ -272,7 +272,7 @@ func TestLargeByteWrites(t *testing.T) {
 //func TestReadFromPanicReader(t *testing.T) {
 //
 //	// First verify non-panic behaviour
-//	var buf bytes.Buffer
+//	buf := bring.New(512, 2)
 //	i, err := buf.ReadFrom(panicReader{})
 //	if err != nil {
 //		t.Fatal(err)
