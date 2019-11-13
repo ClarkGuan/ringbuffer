@@ -177,7 +177,8 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	// 对网络套接字有优化
-	n, err = net.Buffers(bufList).WriteTo(w)
+	buffers := net.Buffers(bufList)
+	n, err = buffers.WriteTo(w)
 	if n == 0 {
 		return
 	}
