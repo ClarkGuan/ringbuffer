@@ -55,6 +55,35 @@ func (rb *Buffer) Reset() {
 	rb.cap = rb.rg.Len() * rb.bufSize
 }
 
+func (rb *Buffer) Truncate(n int) {
+	if n <= 0 {
+		rb.Reset()
+		return
+	}
+
+	if n >= rb.left {
+		return
+	}
+
+	rb.cap += rb.left - n
+	rb.left = n
+
+	rb.pw.i = rb.pr.i
+	rb.pw.r = rb.pr.r
+	m := n
+
+	for m > 0 {
+		if rb.bufSize-rb.pw.i < m {
+			rb.pw.i = 0
+			rb.pw.r = rb.pw.r.Next()
+			m -= rb.bufSize - rb.pw.i
+		} else {
+			rb.pw.i += m
+			break
+		}
+	}
+}
+
 func (rb *Buffer) Close() error {
 	rb.Reset()
 	return nil
