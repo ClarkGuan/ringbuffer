@@ -2,6 +2,7 @@ package bring_test
 
 import (
 	"io"
+	"math/rand"
 	"testing"
 
 	bring "github.com/ClarkGuan/ringbuffer"
@@ -205,59 +206,59 @@ func TestLargeByteReads(t *testing.T) {
 	check(t, "TestLargeByteReads (3)", buf, "")
 }
 
-//func TestMixedReadsAndWrites(t *testing.T) {
-//	buf := bring.New(512, 2)
-//	s := ""
-//	for i := 0; i < 50; i++ {
-//		wlen := rand.Intn(len(testString))
-//		if i%2 == 0 {
-//			s = fillString(t, "TestMixedReadsAndWrites (1)", &buf, s, 1, testString[0:wlen])
-//		} else {
-//			s = fillBytes(t, "TestMixedReadsAndWrites (1)", &buf, s, 1, testBytes[0:wlen])
-//		}
-//
-//		rlen := rand.Intn(len(testString))
-//		fub := make([]byte, rlen)
-//		n, _ := buf.Read(fub)
-//		s = s[n:]
-//	}
-//	empty(t, "TestMixedReadsAndWrites (2)", &buf, s, make([]byte, buf.Len()))
-//}
-//
-//func TestCapWithPreallocatedSlice(t *testing.T) {
-//	buf := bring.New(512, 2)
-//	n := buf.Cap()
-//	if n != 10 {
-//		t.Errorf("expected 10, got %d", n)
-//	}
-//}
-//
-//func TestCapWithSliceAndWrittenData(t *testing.T) {
-//	buf := bring.New(512, 2)
-//	buf.Write([]byte("test"))
-//	n := buf.Cap()
-//	if n != 10 {
-//		t.Errorf("expected 10, got %d", n)
-//	}
-//}
-//
-//func TestNil(t *testing.T) {
-//	buf := bring.New(512, 2)
-//	if b.String() != "<nil>" {
-//		t.Errorf("expected <nil>; got %q", b.String())
-//	}
-//}
-//
-//func TestReadFrom(t *testing.T) {
-//	buf := bring.New(512, 2)
-//	for i := 3; i < 30; i += 3 {
-//		s := fillBytes(t, "TestReadFrom (1)", &buf, "", 5, testBytes[0:len(testBytes)/i])
-//		var b bytes.Buffer
-//		b.ReadFrom(&buf)
-//		empty(t, "TestReadFrom (2)", &b, s, make([]byte, len(testString)))
-//	}
-//}
-//
+func TestMixedReadsAndWrites(t *testing.T) {
+	buf := bring.New(512, 2)
+	s := ""
+	for i := 0; i < 50; i++ {
+		wlen := rand.Intn(len(testString))
+		if i%2 == 0 {
+			s = fillString(t, "TestMixedReadsAndWrites (1)", buf, s, 1, testString[0:wlen])
+		} else {
+			s = fillBytes(t, "TestMixedReadsAndWrites (1)", buf, s, 1, testBytes[0:wlen])
+		}
+
+		rlen := rand.Intn(len(testString))
+		fub := make([]byte, rlen)
+		n, _ := buf.Read(fub)
+		s = s[n:]
+	}
+	empty(t, "TestMixedReadsAndWrites (2)", buf, s, make([]byte, buf.Len()))
+}
+
+func TestCapWithPreallocatedSlice(t *testing.T) {
+	buf := bring.New(512, 2)
+	n := buf.Cap()
+	if n != 1024 {
+		t.Errorf("expected 1024, got %d", n)
+	}
+}
+
+func TestCapWithSliceAndWrittenData(t *testing.T) {
+	buf := bring.New(512, 2)
+	buf.Write([]byte("test"))
+	n := buf.Cap()
+	if n != 1020 {
+		t.Errorf("expected 1020, got %d", n)
+	}
+}
+
+func TestNil(t *testing.T) {
+	b := bring.New(512, 2)
+	if b.String() != "" {
+		t.Errorf("expected \"\"; got %q", b.String())
+	}
+}
+
+func TestReadFrom(t *testing.T) {
+	buf := bring.New(512, 2)
+	for i := 3; i < 30; i += 3 {
+		s := fillBytes(t, "TestReadFrom (1)", buf, "", 5, testBytes[0:len(testBytes)/i])
+		b := bring.New(512, 2)
+		b.ReadFrom(buf)
+		empty(t, "TestReadFrom (2)", b, s, make([]byte, len(testString)))
+	}
+}
+
 //type panicReader struct{ panic bool }
 //
 //func (r panicReader) Read(p []byte) (int, error) {
