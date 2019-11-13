@@ -1,6 +1,7 @@
 package bring
 
 import (
+	"bytes"
 	"container/ring"
 	"io"
 	"net"
@@ -260,6 +261,23 @@ func (rb *Buffer) ReadByte() (byte, error) {
 	}
 
 	return buf[i], nil
+}
+
+func (rb *Buffer) GoString() string {
+	return rb.String()
+}
+
+func (rb *Buffer) String() string {
+	return string(rb.Bytes())
+}
+
+func (rb *Buffer) Bytes() []byte {
+	if rb.left == 0 {
+		return nil
+	}
+	buf := bytes.NewBuffer(make([]byte, rb.left))
+	rb.WriteTo(buf)
+	return buf.Bytes()
 }
 
 // read pointer step into next ring node
