@@ -110,6 +110,10 @@ func (rb *Buffer) Cap() int {
 	return rb.cap
 }
 
+func (rb *Buffer) MaxCap() int {
+	return rb.maxCap
+}
+
 // how many bytes can read from
 func (rb *Buffer) Len() int {
 	return rb.left
