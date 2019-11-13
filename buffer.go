@@ -24,13 +24,26 @@ type Buffer struct {
 	cap     int
 }
 
-func New(size, n int) *Buffer {
+// ns[0] 表示每个缓冲区的最大大小；ns[1] 表示缓冲区的个数
+func New(ns ...int) *Buffer {
+	var size, n int
+
+	if len(ns) == 0 {
+		size = 512
+		n = 1
+	} else if len(ns) == 1 {
+		size = ns[0]
+	} else {
+		size = ns[0]
+		n = ns[1]
+	}
+
 	if size < 512 {
 		size = 512
 	}
 
-	if n < 2 {
-		n = 2
+	if n < 1 {
+		n = 1
 	}
 
 	rb := Buffer{}
