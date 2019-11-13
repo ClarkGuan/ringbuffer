@@ -271,6 +271,7 @@ func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
 		total += int64(n)
 		rb.cap -= n
 		rb.pw.i += n
+		rb.left += n
 
 		if err != nil {
 			if err == io.EOF {
