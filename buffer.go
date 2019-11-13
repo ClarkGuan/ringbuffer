@@ -263,7 +263,7 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 }
 
 func (rb *Buffer) ReadFrom(r io.Reader) (total int64, err error) {
-	// 不确定可以从 r 中读到读少数据，这里只能一点一点增加容量
+	// 不确定可以从 r 中读到多少数据，这里只能一点一点增加容量
 	var n int
 	for {
 		buf := ringBytes(rb.pw.r)[rb.pw.i:]
