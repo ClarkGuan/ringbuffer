@@ -10,6 +10,11 @@ import (
 	assert "github.com/ClarkGuan/assertgo"
 )
 
+const (
+	MIN_BLOCK_SIZE  = 512
+	MIN_BLOCK_COUNT = 1
+)
+
 // ring buffer
 type Buffer struct {
 	pr, pw struct {
@@ -26,22 +31,19 @@ type Buffer struct {
 func New(ns ...int) *Buffer {
 	var size, n int
 
-	if len(ns) == 0 {
-		size = 512
-		n = 1
-	} else if len(ns) == 1 {
+	if len(ns) == 1 {
 		size = ns[0]
-	} else {
+	} else if len(ns) > 1 {
 		size = ns[0]
 		n = ns[1]
 	}
 
-	if size < 512 {
-		size = 512
+	if size < MIN_BLOCK_SIZE {
+		size = MIN_BLOCK_SIZE
 	}
 
-	if n < 1 {
-		n = 1
+	if n < MIN_BLOCK_COUNT {
+		n = MIN_BLOCK_COUNT
 	}
 
 	rb := Buffer{}
@@ -125,6 +127,11 @@ func (rb *Buffer) Skip(n int) {
 	}
 
 	rb.left -= n
+	if rb.left == 0 {
+		rb.Reset()
+		return
+	}
+
 	// 重新计算 rb.pr
 	if rb.pr.i+n <= rb.bufSize {
 		rb.pr.i += n
@@ -224,6 +231,11 @@ func (rb *Buffer) Read(p []byte) (n int, err error) {
 		rb.stepNext(true)
 	}
 
+	if rb.left == 0 {
+		rb.Reset()
+		return
+	}
+
 	return
 }
 
@@ -310,6 +322,9 @@ func (rb *Buffer) WriteTo(w io.Writer) (n int64, err error) {
 		}
 		rb.pr.i += cnt
 		rb.left -= cnt
+		if rb.left == 0 {
+			rb.Reset()
+		}
 		return int64(cnt), err
 	}
 
@@ -366,18 +381,19 @@ func (rb *Buffer) ReadByte() (byte, error) {
 		return 0, io.EOF
 	}
 
-	buf := ringBytes(rb.pr.r)
-	i := rb.pr.i
+	c := ringBytes(rb.pr.r)[rb.pr.i]
 	rb.pr.i++
 	rb.left--
 
-	if rb.left != 0 {
+	if rb.left == 0 {
+		rb.Reset()
+	} else {
 		if rb.pr.i == rb.bufSize {
 			rb.stepNext(true)
 		}
 	}
 
-	return buf[i], nil
+	return c, nil
 }
 
 func (rb *Buffer) WriteByte(c byte) error {
