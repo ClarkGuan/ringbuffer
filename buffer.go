@@ -151,6 +151,7 @@ func (rb *Buffer) Write(p []byte) (n int, err error) {
 		rb.pw.i += cnt
 		offset += cnt
 		rb.cap -= cnt
+		rb.left += cnt
 
 		if total == offset {
 			break
@@ -309,6 +310,8 @@ func (rb *Buffer) WriteByte(c byte) error {
 	}
 	ringBytes(rb.pw.r)[rb.pw.i] = c
 	rb.pw.i++
+	rb.left++
+	rb.cap--
 	return nil
 }
 
@@ -324,7 +327,7 @@ func (rb *Buffer) Bytes() []byte {
 	if rb.left == 0 {
 		return nil
 	}
-	buf := bytes.NewBuffer(make([]byte, rb.left))
+	buf := bytes.NewBuffer(make([]byte, 0, rb.left))
 	rb.writeTo(buf)
 	return buf.Bytes()
 }
